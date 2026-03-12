@@ -43,7 +43,9 @@ public static class Program
                 .AddOtlpExporter())
                 ;
 
-        builder.Services.AddHealthChecks();
+        builder.Services
+            .AddHealthChecks()
+            .AddCheck<ReverseProxyHealthCheck>("reverse_proxy");
 
         builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 
