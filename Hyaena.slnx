@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Web/">
+    <Project Path="src/Web/Hyaena.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/WebUI/">
+    <Project Path="src/WebUI/Hyaena.WebUI.csproj" />
+  </Folder>
+</Solution>
