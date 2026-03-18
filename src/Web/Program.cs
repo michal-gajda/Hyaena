@@ -17,11 +17,11 @@ public static class Program
         var resourceBuilder = ResourceBuilder
             .CreateDefault()
             .AddService(serviceName: SERVICE_NAME, serviceVersion: SERVICE_VERSION)
-            .AddAttributes(new KeyValuePair<string, object>[]
-            {
+            .AddAttributes(
+            [
                 new("service.namespace", SERVICE_NAMESPACE),
                 new("service.instance.id", Environment.MachineName)
-            });
+            ]);
 
         var builder = WebApplication.CreateBuilder(args);
 
