@@ -4,6 +4,7 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Yarp.ReverseProxy.Forwarder;
 
 public static class Program
 {
@@ -47,6 +48,7 @@ public static class Program
             .AddHealthChecks()
             .AddCheck<ReverseProxyHealthCheck>("reverse_proxy");
 
+        builder.Services.AddSingleton<IForwarderHttpClientFactory, PollyForwarderHttpClientFactory>();
         builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 
         var app = builder.Build();
