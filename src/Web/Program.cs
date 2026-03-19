@@ -8,22 +8,23 @@ using Yarp.ReverseProxy.Forwarder;
 
 public static class Program
 {
-    private const string SERVICE_NAME = "hyaena";
-    private const string SERVICE_NAMESPACE = "poc";
-    private const string SERVICE_VERSION = "1.0.0";
-
     public static async Task Main(string[] args)
     {
+        var builder = WebApplication.CreateBuilder(args);
+
+        var serviceSection = builder.Configuration.GetSection("OpenTelemetry:Service");
+        var serviceName = serviceSection["Name"] ?? builder.Environment.ApplicationName;
+        var serviceNamespace = serviceSection["Namespace"] ?? "default";
+        var serviceVersion = serviceSection["Version"] ?? "1.0.0";
+
         var resourceBuilder = ResourceBuilder
             .CreateDefault()
-            .AddService(serviceName: SERVICE_NAME, serviceVersion: SERVICE_VERSION)
+            .AddService(serviceName: serviceName, serviceVersion: serviceVersion)
             .AddAttributes(
             [
-                new("service.namespace", SERVICE_NAMESPACE),
+                new("service.namespace", serviceNamespace),
                 new("service.instance.id", Environment.MachineName)
             ]);
-
-        var builder = WebApplication.CreateBuilder(args);
 
         builder.Logging.AddOpenTelemetry(options => options.SetResourceBuilder(resourceBuilder).AddOtlpExporter());
 
@@ -41,8 +42,11 @@ public static class Program
                 .AddRuntimeInstrumentation()
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
-                .AddOtlpExporter())
-                ;
+                .AddOtlpExporter());
+
+        builder.Services
+            .AddOptions<ReverseProxyHealthCheckOptions>()
+            .BindConfiguration("HealthChecks:ReverseProxy");
 
         builder.Services
             .AddHealthChecks()

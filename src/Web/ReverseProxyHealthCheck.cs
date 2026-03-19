@@ -1,28 +1,19 @@
 namespace Hyaena.Web;
 
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using Yarp.ReverseProxy;
 using Yarp.ReverseProxy.Model;
 
-internal sealed class ReverseProxyHealthCheck : IHealthCheck
+internal sealed class ReverseProxyHealthCheck(IProxyStateLookup proxyStateLookup, IOptions<ReverseProxyHealthCheckOptions> options) : IHealthCheck
 {
-    private static readonly HashSet<string> ExcludedClusterIds = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "otlp-collector"
-    };
-
-    private readonly IProxyStateLookup proxyStateLookup;
-
-    public ReverseProxyHealthCheck(IProxyStateLookup proxyStateLookup)
-    {
-        this.proxyStateLookup = proxyStateLookup;
-    }
+    private readonly ReverseProxyHealthCheckOptions options = options.Value;
 
     public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        var clusters = this.proxyStateLookup
+        var clusters = proxyStateLookup
             .GetClusters()
-            .Where(cluster => ExcludedClusterIds.Contains(cluster.ClusterId) is false)
+            .Where(cluster => !options.ExcludedClusterIds.Contains(cluster.ClusterId))
             .ToArray();
 
         if (clusters.Length is 0)
@@ -42,6 +33,7 @@ internal sealed class ReverseProxyHealthCheck : IHealthCheck
             {
                 hasUnhealthyCluster = true;
                 clusterSummaries.Add($"{cluster.ClusterId}: no destinations");
+
                 continue;
             }
 
@@ -50,7 +42,7 @@ internal sealed class ReverseProxyHealthCheck : IHealthCheck
             var unhealthyDestinationsCount = destinationStates.Count(state => state is DestinationAggregateHealth.Unhealthy);
             var unknownDestinationsCount = destinationStates.Count(state => state is DestinationAggregateHealth.Unknown);
 
-            if (healthyDestinationsCount == 0)
+            if (healthyDestinationsCount is 0)
             {
                 hasUnhealthyCluster = true;
                 clusterSummaries.Add($"{cluster.ClusterId}: unhealthy (0/{destinations.Length} healthy, {unknownDestinationsCount} unknown)");
@@ -97,12 +89,5 @@ internal sealed class ReverseProxyHealthCheck : IHealthCheck
         }
 
         return DestinationAggregateHealth.Healthy;
-    }
-
-    private enum DestinationAggregateHealth
-    {
-        Healthy,
-        Unhealthy,
-        Unknown,
     }
 }
